@@ -1,0 +1,145 @@
+# WordPress ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wp-configmap
+  namespace: wp
+  labels:
+    id: "C0911159"
+    app: word
+    env: dev
+data:
+  WORDPRESS_DB_HOST: "maria.db.svc.cluster.local"
+  WORDPRESS_DB_USER: "wordpress"
+  WORDPRESS_DB_NAME: "wordpress"
+---
+# WordPress Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: wp-secret
+  namespace: wp
+type: Opaque
+data:
+  WORDPRESS_DB_PASSWORD: d29yZHByZXNz  # 'wordpress' in base64
+---
+# WordPress Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wp-deploayment
+  namespace: wp
+  labels:
+    id: "C0911159"
+    app: word
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: word
+  template:
+    metadata:
+      labels:
+        id: "C0911159"
+        app: word
+        env: dev
+        version: "1.0.0"
+    spec:
+      containers:
+      - name: word
+        image: wordpress:latest
+        envFrom:
+          - configMapRef:
+              name: wp-configmap
+          - secretRef:
+              name: wp-secret
+        ports:
+        - containerPort: 80
+---
+# WordPress Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: word-svc
+  namespace: wp
+spec:
+  type: NodePort
+  selector:
+    id: "C0911159"
+    app: word
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+# MariaDB ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maria-configmap
+  namespace: db
+  labels:
+    id: "C0911159"
+    app: maria
+    env: dev
+data:
+  MYSQL_DATABASE: "wordpress"
+  MYSQL_USER: "wordpress"
+---
+# MariaDB Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: maria-secret
+  namespace: db
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: d29yZHByZXNz  # 'wordpress' in base64
+  MYSQL_PASSWORD: d29yZHByZXNz       # 'wordpress' in base64
+---
+# MariaDB Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deploayment
+  namespace: db
+  labels:
+    id: "C0911159"
+    app: maria
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maria
+  template:
+    metadata:
+      labels:
+        id: "C0911159"
+        app: maria
+        env: dev
+        version: "1.0.0"
+    spec:
+      containers:
+      - name: maria
+        image: mariadb:10.6.4-focal
+        envFrom:
+          - configMapRef:
+              name: maria-configmap
+          - secretRef:
+              name: maria-secret
+        ports:
+        - containerPort: 3306
+---
+# MariaDB Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: maria
+  namespace: db
+spec:
+  selector:
+    id: "C0911159"
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
